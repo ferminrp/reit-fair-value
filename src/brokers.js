@@ -16,6 +16,10 @@
     return parseArgentineParts(intPart, `,${decPart}`);
   }
 
+  function normalizeText(text) {
+    return text.replace(/\s+/g, ' ').trim();
+  }
+
   const iebmas = {
     id: 'iebmas',
     name: 'IEB Mas',
@@ -62,21 +66,33 @@
       return ticker?.toUpperCase() === 'REIT';
     },
     getObserverTarget() {
-      const priceSpan = this._findPriceElement();
-      return priceSpan?.closest('.row') || document.body;
+      return document.body;
     },
     _findPriceElement() {
-      const labels = document.querySelectorAll('p.text-size-3');
-      for (const label of labels) {
-        if (label.textContent.trim() !== 'Último operado') continue;
+      for (const label of document.querySelectorAll('p')) {
+        if (!/último\s+operado/i.test(normalizeText(label.textContent))) {
+          continue;
+        }
+
+        const sibling = label.nextElementSibling;
+        const priceSpan =
+          sibling?.querySelector('span[class*="text-size-6"]') ||
+          sibling?.querySelector('span');
+
+        if (priceSpan && /\$?\s*[\d.]+,\d{2}/.test(priceSpan.textContent)) {
+          return priceSpan;
+        }
+
         const container = label.parentElement;
-        const priceSpan = container?.querySelector('span.text-size-6b');
-        if (priceSpan) return priceSpan;
+        const nestedSpan = container?.querySelector('span[class*="text-size-6"]');
+        if (nestedSpan && /\$?\s*[\d.]+,\d{2}/.test(nestedSpan.textContent)) {
+          return nestedSpan;
+        }
       }
 
-      for (const span of document.querySelectorAll('span.text-size-6b')) {
-        const text = span.textContent.trim();
-        if (/^\$\s*[\d.]+\,\d{2}$/.test(text)) {
+      for (const span of document.querySelectorAll('span[class*="text-size-6"]')) {
+        const text = normalizeText(span.textContent);
+        if (/^\$\s*[\d.]+,\d{2}$/.test(text)) {
           return span;
         }
       }

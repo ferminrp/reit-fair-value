@@ -12,6 +12,7 @@
   let debounceTimer = null;
   let priceWaitTimer = null;
   let refreshTimer = null;
+  let pricePollTimer = null;
 
   function storageKeyPosition() {
     return `modalPosition:${broker?.id || 'default'}`;
@@ -165,6 +166,8 @@
       return;
     }
 
+    stopPricePolling();
+
     const { statusClass, statusText, diffText } = getComparison(
       marketPrice,
       fairValueData.valor
@@ -282,12 +285,33 @@
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ['class'],
     });
+  }
+
+  function startPricePolling() {
+    clearInterval(pricePollTimer);
+    pricePollTimer = setInterval(() => {
+      if (readMarketPrice() !== null) {
+        clearInterval(pricePollTimer);
+        pricePollTimer = null;
+        updateUI();
+      }
+    }, 500);
+  }
+
+  function stopPricePolling() {
+    if (pricePollTimer) {
+      clearInterval(pricePollTimer);
+      pricePollTimer = null;
+    }
   }
 
   function startPriceWaitTimeout() {
     clearTimeout(priceWaitTimer);
     priceWaitTimer = setTimeout(() => {
+      stopPricePolling();
       if (readMarketPrice() === null) {
         renderPriceError();
       }
@@ -316,6 +340,7 @@
 
     renderLoading();
     startPriceObserver();
+    startPricePolling();
     startPriceWaitTimeout();
     startFairValueRefresh();
     updateUI();
