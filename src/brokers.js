@@ -126,6 +126,54 @@
     },
   };
 
+  const cocos = {
+    id: 'cocos',
+    name: 'Cocos Capital',
+    matches() {
+      if (!/app\.cocos\.capital$/i.test(location.hostname)) return false;
+      return /^\/market\//i.test(location.pathname);
+    },
+    getObserverTarget() {
+      const drawer = document.querySelector('[class*="_selectedInstrument_"]');
+      return drawer?.parentElement || document.body;
+    },
+    getWaitingMessage() {
+      return 'Seleccioná REIT en el listado';
+    },
+    skipPriceWaitTimeout: true,
+    _isReitSelected() {
+      const drawer = document.querySelector('[class*="_selectedInstrument_"]');
+      if (!drawer) return false;
+
+      const titleEl = drawer.querySelector('[class*="_instrumentTitle_"]');
+      if (!titleEl) return false;
+
+      return /REIT/i.test(normalizeText(titleEl.textContent));
+    },
+    _findPriceParts() {
+      const drawer = document.querySelector('[class*="_selectedInstrument_"]');
+      if (!drawer) return null;
+
+      const intEl = drawer.querySelector('[class*="_integerPart_"]');
+      const decEl = drawer.querySelector('[class*="_decimalPart_"]');
+      if (!intEl || !decEl) return null;
+
+      return { intEl, decEl };
+    },
+    readMarketPrice() {
+      if (!this._isReitSelected()) return null;
+
+      const parts = this._findPriceParts();
+      if (!parts) return null;
+
+      const intPart = normalizeText(parts.intEl.textContent).replace(/,\s*$/, '');
+      const decPart = normalizeText(parts.decEl.textContent);
+      if (!intPart || !decPart) return null;
+
+      return parseArgentineParts(intPart, `,${decPart.padEnd(2, '0')}`);
+    },
+  };
+
   const ppi = {
     id: 'ppi',
     name: 'PPI',
@@ -181,7 +229,7 @@
     },
   };
 
-  window.RFV_BROKERS = [iebmas, balanz, iol, ppi];
+  window.RFV_BROKERS = [iebmas, balanz, iol, ppi, cocos];
 
   window.RFV_getBroker = function () {
     return window.RFV_BROKERS.find((broker) => broker.matches()) || null;

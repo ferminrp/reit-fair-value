@@ -8,6 +8,7 @@ ALyCs soportadas:
 - [Balanz](https://clientes.balanz.com/app/detalleinstrumento?ticker=REIT)
 - [IOL](https://iol.invertironline.com/titulo/cotizacion/BCBA/REIT/FCI-CERRADO-INMOBILIARIO-REIT-CICLO-NOVA--)
 - [PPI](https://trading.portfoliopersonal.com/Cotizaciones/Item/925077)
+- [Cocos Capital](https://app.cocos.capital/market/ACCIONES) — abrí REIT desde el listado de mercado (panel lateral)
 
 ## Instalación (modo desarrollador)
 
@@ -19,7 +20,7 @@ ALyCs soportadas:
 ## Uso
 
 1. Iniciá sesión en tu ALyC si es necesario.
-2. Navegá al detalle de REIT en IEB Mas, Balanz, IOL o PPI.
+2. Navegá al detalle de REIT en IEB Mas, Balanz, IOL, PPI o Cocos Capital (en Cocos, seleccioná REIT en el mercado para abrir el panel lateral).
 3. Aparecerá un modal flotante en la esquina superior derecha indicando si el precio está por encima o por debajo del fair value.
 4. Podés arrastrar el modal desde el encabezado; la posición se guarda por ALyC entre recargas.
 
@@ -31,7 +32,7 @@ reit-fair-value/
 ├── icons/
 └── src/
     ├── background.js   # Fetch de API y caché
-    ├── brokers.js      # Adaptadores por ALyC (IEB Mas, Balanz, IOL, PPI)
+    ├── brokers.js      # Adaptadores por ALyC (IEB Mas, Balanz, IOL, PPI, Cocos)
     ├── content.js      # Modal y orquestación
     └── styles.css
 ```

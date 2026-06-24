@@ -1,15 +1,16 @@
 {
   "manifest_version": 3,
   "name": "REIT Fair Value",
-  "description": "Compara el precio de REIT en IEB Mas, Balanz, IOL y PPI con el fair value oficial de reit.com.ar",
-  "version": "1.4.0",
+  "description": "Compara el precio de REIT en IEB Mas, Balanz, IOL, PPI y Cocos Capital con el fair value oficial de reit.com.ar",
+  "version": "1.5.2",
   "permissions": ["storage"],
   "host_permissions": [
     "https://reit.com.ar/*",
     "https://hb.iebmas.com.ar/*",
     "https://clientes.balanz.com/*",
     "https://iol.invertironline.com/*",
-    "https://trading.portfoliopersonal.com/*"
+    "https://trading.portfoliopersonal.com/*",
+    "https://app.cocos.capital/*"
   ],
   "background": {
     "service_worker": "src/background.js"
@@ -17,10 +18,11 @@
   "content_scripts": [
     {
       "matches": [
-        "https://hb.iebmas.com.ar/instrumento/REIT*",
-        "https://clientes.balanz.com/app/detalleinstrumento*",
-        "https://iol.invertironline.com/titulo/cotizacion/BCBA/REIT*",
-        "https://trading.portfoliopersonal.com/Cotizaciones/Item/925077*"
+        "https://hb.iebmas.com.ar/*",
+        "https://clientes.balanz.com/*",
+        "https://iol.invertironline.com/*",
+        "https://trading.portfoliopersonal.com/*",
+        "https://app.cocos.capital/*"
       ],
       "js": ["src/brokers.js", "src/content.js"],
       "css": ["src/styles.css"],

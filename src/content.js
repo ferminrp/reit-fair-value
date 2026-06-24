@@ -13,6 +13,9 @@
   let priceWaitTimer = null;
   let refreshTimer = null;
   let pricePollTimer = null;
+  let initialized = false;
+  let lastHref = location.href;
+  let lastActiveBrokerId = null;
 
   function storageKeyPosition() {
     return `modalPosition:${broker?.id || 'default'}`;
@@ -171,7 +174,11 @@
     return modal;
   }
 
-  function renderLoading(message = 'Esperando precio...') {
+  function waitingMessage() {
+    return broker?.getWaitingMessage?.() ?? 'Esperando precio...';
+  }
+
+  function renderLoading(message = waitingMessage()) {
     const el = ensureModal();
     if (!el) return;
     el.querySelector('.rfv-body').innerHTML = `
@@ -220,6 +227,7 @@
 
     const marketPrice = readMarketPrice();
     if (marketPrice === null) {
+      startPricePolling();
       renderLoading();
       return;
     }
@@ -373,6 +381,7 @@
 
   function startPriceWaitTimeout() {
     clearTimeout(priceWaitTimer);
+    if (broker?.skipPriceWaitTimeout) return;
     priceWaitTimer = setTimeout(() => {
       stopPricePolling();
       if (readMarketPrice() === null) {
@@ -389,18 +398,103 @@
     }, FAIR_VALUE_REFRESH_MS);
   }
 
+  function teardown() {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    stopPricePolling();
+    if (priceWaitTimer) {
+      clearTimeout(priceWaitTimer);
+      priceWaitTimer = null;
+    }
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (modal) {
+      modal.remove();
+      modal = null;
+    }
+    broker = null;
+    initialized = false;
+  }
+
+  function handleNavigation() {
+    const href = location.href;
+    const nextBroker =
+      typeof window.RFV_getBroker === 'function'
+        ? window.RFV_getBroker()
+        : null;
+    const nextBrokerId = nextBroker?.id ?? null;
+
+    const hrefChanged = href !== lastHref;
+    const brokerChanged = nextBrokerId !== lastActiveBrokerId;
+
+    if (hrefChanged) lastHref = href;
+    lastActiveBrokerId = nextBrokerId;
+
+    if (!nextBroker) {
+      if (initialized) teardown();
+      return;
+    }
+
+    if (!initialized) {
+      init();
+      return;
+    }
+
+    if (broker?.id !== nextBrokerId) {
+      teardown();
+      init();
+      return;
+    }
+
+    if (hrefChanged || brokerChanged) {
+      updateUI();
+    }
+  }
+
+  function startNavigationWatcher() {
+    const onNavigate = () => queueMicrotask(handleNavigation);
+
+    window.addEventListener('popstate', onNavigate);
+
+    for (const method of ['pushState', 'replaceState']) {
+      const original = history[method].bind(history);
+      history[method] = function (...args) {
+        const result = original(...args);
+        onNavigate();
+        return result;
+      };
+    }
+
+    setInterval(handleNavigation, 500);
+  }
+
   async function init() {
+    if (initialized) return;
     if (typeof window.RFV_getBroker !== 'function') return;
 
     broker = window.RFV_getBroker();
     if (!broker) return;
     if (!document.body) return;
 
+    const brokerId = broker.id;
+
     renderLoading('Obteniendo fair value...');
 
     const fairOk = await loadMetrics();
+    const stillActive = window.RFV_getBroker()?.id === brokerId;
+    if (!stillActive) return;
+
     if (!fairOk) {
       renderFairValueError();
+      initialized = true;
       return;
     }
 
@@ -409,12 +503,18 @@
     startPricePolling();
     startPriceWaitTimeout();
     startFairValueRefresh();
+    initialized = true;
     updateUI();
   }
 
+  function bootstrap() {
+    startNavigationWatcher();
+    handleNavigation();
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', bootstrap);
   } else {
-    init();
+    bootstrap();
   }
 })();
