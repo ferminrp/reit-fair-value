@@ -126,7 +126,33 @@
     },
   };
 
-  window.RFV_BROKERS = [iebmas, balanz, iol];
+  const ppi = {
+    id: 'ppi',
+    name: 'PPI',
+    matches() {
+      if (!/trading\.portfoliopersonal\.com$/i.test(location.hostname)) return false;
+      return /\/Cotizaciones\/Item\/925077/i.test(location.pathname);
+    },
+    getObserverTarget() {
+      for (const el of document.querySelectorAll('.font-highlight-sm.font-bold')) {
+        if (/AR\$\s*[\d.]+,\d{2}/.test(el.textContent)) {
+          return el.parentElement || el;
+        }
+      }
+      return document.body;
+    },
+    readMarketPrice() {
+      for (const el of document.querySelectorAll('.font-highlight-sm.font-bold')) {
+        const text = normalizeText(el.textContent);
+        if (/AR\$\s*[\d.]+,\d{2}/.test(text)) {
+          return parseSingleArgentinePrice(text);
+        }
+      }
+      return null;
+    },
+  };
+
+  window.RFV_BROKERS = [iebmas, balanz, iol, ppi];
 
   window.RFV_getBroker = function () {
     return window.RFV_BROKERS.find((broker) => broker.matches()) || null;
