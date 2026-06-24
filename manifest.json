@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "REIT Fair Value",
+  "description": "Compara el precio de REIT en IEB Mas con el fair value oficial de reit.com.ar",
+  "version": "1.0.0",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://reit.com.ar/*",
+    "https://hb.iebmas.com.ar/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://hb.iebmas.com.ar/instrumento/REIT*"],
+      "js": ["src/content.js"],
+      "css": ["src/styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
