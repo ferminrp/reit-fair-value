@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "REIT Fair Value",
-  "description": "Compara el precio de REIT en IEB Mas y Balanz con el fair value oficial de reit.com.ar",
-  "version": "1.2.0",
+  "description": "Compara el precio de REIT en IEB Mas, Balanz e IOL con el fair value oficial de reit.com.ar",
+  "version": "1.3.0",
   "permissions": ["storage"],
   "host_permissions": [
     "https://reit.com.ar/*",
     "https://hb.iebmas.com.ar/*",
-    "https://clientes.balanz.com/*"
+    "https://clientes.balanz.com/*",
+    "https://iol.invertironline.com/*"
   ],
   "background": {
     "service_worker": "src/background.js"
@@ -16,7 +17,8 @@
     {
       "matches": [
         "https://hb.iebmas.com.ar/instrumento/REIT*",
-        "https://clientes.balanz.com/app/detalleinstrumento*"
+        "https://clientes.balanz.com/app/detalleinstrumento*",
+        "https://iol.invertironline.com/titulo/cotizacion/BCBA/REIT*"
       ],
       "js": ["src/brokers.js", "src/content.js"],
       "css": ["src/styles.css"],

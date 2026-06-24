@@ -106,7 +106,27 @@
     },
   };
 
-  window.RFV_BROKERS = [iebmas, balanz];
+  const iol = {
+    id: 'iol',
+    name: 'IOL',
+    matches() {
+      if (!/iol\.invertironline\.com$/i.test(location.hostname)) return false;
+      return /\/titulo\/cotizacion\/BCBA\/REIT/i.test(location.pathname);
+    },
+    getObserverTarget() {
+      return (
+        document.querySelector('[data-field="UltimoPrecio"]')?.closest('table') ||
+        document.body
+      );
+    },
+    readMarketPrice() {
+      const priceEl = document.querySelector('[data-field="UltimoPrecio"]');
+      if (!priceEl) return null;
+      return parseSingleArgentinePrice(priceEl.textContent);
+    },
+  };
+
+  window.RFV_BROKERS = [iebmas, balanz, iol];
 
   window.RFV_getBroker = function () {
     return window.RFV_BROKERS.find((broker) => broker.matches()) || null;
