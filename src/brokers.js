@@ -133,22 +133,51 @@
       if (!/trading\.portfoliopersonal\.com$/i.test(location.hostname)) return false;
       return /\/Cotizaciones\/Item\/925077/i.test(location.pathname);
     },
-    getObserverTarget() {
-      for (const el of document.querySelectorAll('.font-highlight-sm.font-bold')) {
-        if (/AR\$\s*[\d.]+,\d{2}/.test(el.textContent)) {
-          return el.parentElement || el;
+    _findPriceElement() {
+      const fciPrice = document.querySelector('[class*="lastPriceValue"]');
+      if (fciPrice && /[\d.]+,\d{2}/.test(fciPrice.textContent)) {
+        return fciPrice;
+      }
+
+      for (const selector of [
+        '.font-highlight-lg.font-bold',
+        '.font-highlight-md.font-bold',
+        '.font-highlight-sm.font-bold',
+      ]) {
+        for (const el of document.querySelectorAll(selector)) {
+          const text = normalizeText(el.textContent);
+          if (/AR\$\s*[\d.]+,\d{2}/.test(text)) {
+            return el;
+          }
         }
       }
-      return document.body;
+
+      for (const label of document.querySelectorAll('.font-body-sm, .font-body-md')) {
+        if (!/último precio/i.test(normalizeText(label.textContent))) continue;
+
+        const priceEl =
+          label.querySelector('[class*="lastPriceValue"]') ||
+          label.querySelector('span');
+
+        if (priceEl && /[\d.]+,\d{2}/.test(priceEl.textContent)) {
+          return priceEl;
+        }
+      }
+
+      return null;
+    },
+    getObserverTarget() {
+      const priceEl = this._findPriceElement();
+      return (
+        priceEl?.closest('[class*="detailFCI"]') ||
+        priceEl?.parentElement ||
+        document.body
+      );
     },
     readMarketPrice() {
-      for (const el of document.querySelectorAll('.font-highlight-sm.font-bold')) {
-        const text = normalizeText(el.textContent);
-        if (/AR\$\s*[\d.]+,\d{2}/.test(text)) {
-          return parseSingleArgentinePrice(text);
-        }
-      }
-      return null;
+      const priceEl = this._findPriceElement();
+      if (!priceEl) return null;
+      return parseSingleArgentinePrice(priceEl.textContent);
     },
   };
 

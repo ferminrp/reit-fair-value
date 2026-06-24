@@ -149,6 +149,7 @@
 
   function ensureModal() {
     if (modal) return modal;
+    if (!document.body) return null;
 
     modal = document.createElement('div');
     modal.id = 'rfv-modal';
@@ -172,6 +173,7 @@
 
   function renderLoading(message = 'Esperando precio...') {
     const el = ensureModal();
+    if (!el) return;
     el.querySelector('.rfv-body').innerHTML = `
       <div class="rfv-loading">
         <div class="rfv-spinner"></div>
@@ -182,6 +184,7 @@
 
   function renderFairValueError() {
     const el = ensureModal();
+    if (!el) return;
     el.querySelector('.rfv-body').innerHTML = `
       <div class="rfv-error">
         <span>No se pudo obtener fair value</span>
@@ -201,6 +204,7 @@
 
   function renderPriceError() {
     const el = ensureModal();
+    if (!el) return;
     el.querySelector('.rfv-body').innerHTML = `
       <div class="rfv-error">
         <span>No se encontró el precio en la página</span>
@@ -229,6 +233,7 @@
     );
 
     const el = ensureModal();
+    if (!el) return;
     const fecha = metricsData.metricas.fecha_actualizacion?.formato
       ? `Datos al ${metricsData.metricas.fecha_actualizacion.formato}`
       : '';
@@ -329,8 +334,10 @@
 
   function startPriceObserver() {
     if (observer) observer.disconnect();
+    if (!broker?.getObserverTarget) return;
 
-    const target = broker.getObserverTarget();
+    const target = broker.getObserverTarget() || document.body;
+    if (!target) return;
 
     observer = new MutationObserver(() => {
       clearTimeout(debounceTimer);
@@ -383,8 +390,11 @@
   }
 
   async function init() {
+    if (typeof window.RFV_getBroker !== 'function') return;
+
     broker = window.RFV_getBroker();
     if (!broker) return;
+    if (!document.body) return;
 
     renderLoading('Obteniendo fair value...');
 
