@@ -3,30 +3,49 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 
 let cache = null;
 
-async function fetchFairValue() {
+function pickMetric(source, key) {
+  const item = source?.[key];
+  if (!item) return null;
+  return {
+    valor: item.valor,
+    formato: item.formato ?? String(item.valor),
+  };
+}
+
+async function fetchMetricas() {
   const response = await fetch(API_URL);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
 
   const data = await response.json();
-  const fairValue = data?.metricas?.fair_value;
-  const fechaActualizacion = data?.metricas?.fecha_actualizacion;
+  const source = data?.metricas;
 
-  if (!fairValue?.valor) {
+  if (!source?.fair_value?.valor) {
     throw new Error('Fair value no encontrado en la respuesta');
   }
 
+  const metricas = {
+    patrimonio_fondo: pickMetric(source, 'patrimonio_fondo'),
+    activos_financieros: pickMetric(source, 'activos_financieros'),
+    valor_propiedades: pickMetric(source, 'valor_propiedades'),
+    inmuebles: pickMetric(source, 'inmuebles'),
+    fair_value: pickMetric(source, 'fair_value'),
+    ocupacion: pickMetric(source, 'ocupacion'),
+    fecha_actualizacion: pickMetric(source, 'fecha_actualizacion'),
+    evolucion_mensual: pickMetric(source, 'evolucion_mensual'),
+    rendimiento_anual: pickMetric(source, 'rendimiento_anual'),
+    rendimiento_lanzamiento: pickMetric(source, 'rendimiento_lanzamiento'),
+  };
+
   return {
-    valor: fairValue.valor,
-    formato: fairValue.formato || String(fairValue.valor),
-    fechaActualizacion: fechaActualizacion?.formato || null,
+    metricas,
     actualizado: data.actualizado || null,
     fetchedAt: Date.now(),
   };
 }
 
-async function getFairValue(forceRefresh = false) {
+async function getMetricas(forceRefresh = false) {
   if (
     !forceRefresh &&
     cache &&
@@ -35,7 +54,7 @@ async function getFairValue(forceRefresh = false) {
     return cache;
   }
 
-  const result = await fetchFairValue();
+  const result = await fetchMetricas();
   cache = result;
   return result;
 }
@@ -45,7 +64,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return false;
   }
 
-  getFairValue(Boolean(message.forceRefresh))
+  getMetricas(Boolean(message.forceRefresh))
     .then((data) => sendResponse({ ok: true, data }))
     .catch((error) => sendResponse({ ok: false, error: error.message }));
 

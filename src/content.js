@@ -6,7 +6,7 @@
   const FAIR_VALUE_REFRESH_MS = 5 * 60 * 1000;
 
   let broker = null;
-  let fairValueData = null;
+  let metricsData = null;
   let modal = null;
   let observer = null;
   let debounceTimer = null;
@@ -39,6 +39,60 @@
   function formatPct(value) {
     const sign = value > 0 ? '+' : '';
     return `${sign}${value.toFixed(2).replace('.', ',')}%`;
+  }
+
+  function formatPatrimonioPct(value, patrimonio) {
+    if (!patrimonio || patrimonio <= 0) return null;
+    const pct = (value / patrimonio) * 100;
+    return `${pct.toFixed(1).replace('.', ',')}%`;
+  }
+
+  function metricValue(metric) {
+    if (!metric) return '—';
+    return metric.formato || String(metric.valor);
+  }
+
+  function renderMetricRow(label, value) {
+    return `
+      <div class="rfv-row">
+        <span class="rfv-label">${label}</span>
+        <span class="rfv-value rfv-value--metric">${value}</span>
+      </div>
+    `;
+  }
+
+  function renderMetricsSection(metricas) {
+    const patrimonio = metricas.patrimonio_fondo?.valor ?? 0;
+
+    return `
+      <div class="rfv-section">
+        <div class="rfv-section-title">Métricas del fondo</div>
+        ${renderMetricRow('Patrimonio', metricValue(metricas.patrimonio_fondo))}
+        ${renderMetricRow(
+          'Activos financieros',
+          `${metricValue(metricas.activos_financieros)}${
+            patrimonio
+              ? ` <span class="rfv-pct">(${formatPatrimonioPct(metricas.activos_financieros?.valor ?? 0, patrimonio)} del patrimonio)</span>`
+              : ''
+          }`
+        )}
+        ${renderMetricRow(
+          'Valor inmuebles',
+          `${metricValue(metricas.valor_propiedades)}${
+            patrimonio
+              ? ` <span class="rfv-pct">(${formatPatrimonioPct(metricas.valor_propiedades?.valor ?? 0, patrimonio)} del patrimonio)</span>`
+              : ''
+          }`
+        )}
+        ${renderMetricRow('Ocupación', metricValue(metricas.ocupacion))}
+        ${renderMetricRow('Evolución mensual', metricValue(metricas.evolucion_mensual))}
+        ${renderMetricRow('Rendimiento anual', metricValue(metricas.rendimiento_anual))}
+        ${renderMetricRow(
+          'Rend. lanzamiento',
+          metricValue(metricas.rendimiento_lanzamiento)
+        )}
+      </div>
+    `;
   }
 
   function readMarketPrice() {
@@ -83,13 +137,13 @@
     });
   }
 
-  async function loadFairValue(forceRefresh = false) {
+  async function loadMetrics(forceRefresh = false) {
     const response = await requestFairValue(forceRefresh);
     if (!response?.ok) {
-      fairValueData = null;
+      metricsData = null;
       return false;
     }
-    fairValueData = response.data;
+    metricsData = response.data;
     return true;
   }
 
@@ -136,7 +190,7 @@
     `;
     el.querySelector('.rfv-retry').addEventListener('click', async () => {
       renderLoading('Obteniendo fair value...');
-      const ok = await loadFairValue(true);
+      const ok = await loadMetrics(true);
       if (ok) {
         updateUI();
       } else {
@@ -155,7 +209,7 @@
   }
 
   function updateUI() {
-    if (!fairValueData) {
+    if (!metricsData?.metricas?.fair_value) {
       renderFairValueError();
       return;
     }
@@ -168,14 +222,15 @@
 
     stopPricePolling();
 
+    const fairValue = metricsData.metricas.fair_value.valor;
     const { statusClass, statusText, diffText } = getComparison(
       marketPrice,
-      fairValueData.valor
+      fairValue
     );
 
     const el = ensureModal();
-    const fecha = fairValueData.fechaActualizacion
-      ? `Fair value al ${fairValueData.fechaActualizacion}`
+    const fecha = metricsData.metricas.fecha_actualizacion?.formato
+      ? `Datos al ${metricsData.metricas.fecha_actualizacion.formato}`
       : '';
 
     el.querySelector('.rfv-body').innerHTML = `
@@ -186,9 +241,10 @@
       </div>
       <div class="rfv-row">
         <span class="rfv-label">Fair value</span>
-        <span class="rfv-value">${formatARS(fairValueData.valor)}</span>
+        <span class="rfv-value">${formatARS(fairValue)}</span>
       </div>
       <div class="rfv-diff">${diffText}</div>
+      ${renderMetricsSection(metricsData.metricas)}
       ${fecha ? `<div class="rfv-meta">${fecha}</div>` : ''}
       ${broker ? `<div class="rfv-meta">${broker.name}</div>` : ''}
     `;
@@ -321,7 +377,7 @@
   function startFairValueRefresh() {
     clearInterval(refreshTimer);
     refreshTimer = setInterval(async () => {
-      await loadFairValue(true);
+      await loadMetrics(true);
       updateUI();
     }, FAIR_VALUE_REFRESH_MS);
   }
@@ -332,7 +388,7 @@
 
     renderLoading('Obteniendo fair value...');
 
-    const fairOk = await loadFairValue();
+    const fairOk = await loadMetrics();
     if (!fairOk) {
       renderFairValueError();
       return;

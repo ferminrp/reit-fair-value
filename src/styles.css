@@ -2,7 +2,8 @@
   position: fixed;
   top: 16px;
   right: 16px;
-  width: 240px;
+  width: 280px;
+  max-height: calc(100vh - 32px);
   background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
@@ -12,6 +13,8 @@
   z-index: 2147483647;
   user-select: none;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 #rfv-modal.rfv-collapsed .rfv-body {
@@ -62,6 +65,35 @@
 
 .rfv-body {
   padding: 12px;
+  overflow-y: auto;
+}
+
+.rfv-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.rfv-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.rfv-value--metric {
+  text-align: right;
+  max-width: 58%;
+  line-height: 1.35;
+}
+
+.rfv-pct {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: #9ca3af;
 }
 
 .rfv-status {
