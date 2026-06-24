@@ -4,8 +4,8 @@
   const PRICE_WAIT_TIMEOUT_MS = 30000;
   const OBSERVER_DEBOUNCE_MS = 300;
   const FAIR_VALUE_REFRESH_MS = 5 * 60 * 1000;
-  const STORAGE_KEY_POSITION = 'modalPosition';
 
+  let broker = null;
   let fairValueData = null;
   let modal = null;
   let observer = null;
@@ -13,12 +13,8 @@
   let priceWaitTimer = null;
   let refreshTimer = null;
 
-  function parseArgentinePrice(intText, decText) {
-    const integer = intText.replace(/\./g, '').trim();
-    const decimal = decText.replace(',', '.').trim();
-    if (!integer) return null;
-    const value = Number(`${integer}${decimal}`);
-    return Number.isFinite(value) ? value : null;
+  function storageKeyPosition() {
+    return `modalPosition:${broker?.id || 'default'}`;
   }
 
   function formatARS(value) {
@@ -44,64 +40,31 @@
     return `${sign}${value.toFixed(2).replace('.', ',')}%`;
   }
 
-  function isReitPage() {
-    return /\/instrumento\/REIT/i.test(location.pathname);
-  }
-
-  function findPriceElements() {
-    const displayNumber = document.querySelector('.display-number');
-    if (!displayNumber) return null;
-
-    const intEl = displayNumber.querySelector('[class*="labelXxlBold"]');
-    if (intEl) {
-      const decEl = intEl.nextElementSibling;
-      if (decEl?.tagName === 'SPAN') {
-        return { intEl, decEl };
-      }
-    }
-
-    const boxes = displayNumber.querySelectorAll('div');
-    for (const box of boxes) {
-      const spans = box.querySelectorAll(':scope > span');
-      if (spans.length >= 2) {
-        return { intEl: spans[0], decEl: spans[1] };
-      }
-    }
-
-    return null;
-  }
-
   function readMarketPrice() {
-    const els = findPriceElements();
-    if (!els) return null;
-    return parseArgentinePrice(els.intEl.textContent, els.decEl.textContent);
+    return broker?.readMarketPrice() ?? null;
   }
 
   function getComparison(marketPrice, fairValue) {
     const diff = marketPrice - fairValue;
     const diffPct = (diff / fairValue) * 100;
 
-    let status;
     let statusClass;
     let statusText;
 
     if (diff > 0) {
-      status = 'above';
       statusClass = 'rfv-status--above';
       statusText = 'Por encima del fair value';
     } else if (diff < 0) {
-      status = 'below';
       statusClass = 'rfv-status--below';
       statusText = 'Por debajo del fair value';
     } else {
-      status = 'equal';
       statusClass = 'rfv-status--equal';
       statusText = 'En fair value';
     }
 
     const diffText = `${formatDiff(diff)} · ${formatPct(diffPct)}`;
 
-    return { status, statusClass, statusText, diffText };
+    return { statusClass, statusText, diffText };
   }
 
   function requestFairValue(forceRefresh = false) {
@@ -224,6 +187,7 @@
       </div>
       <div class="rfv-diff">${diffText}</div>
       ${fecha ? `<div class="rfv-meta">${fecha}</div>` : ''}
+      ${broker ? `<div class="rfv-meta">${broker.name}</div>` : ''}
     `;
   }
 
@@ -283,7 +247,7 @@
 
       const rect = modalEl.getBoundingClientRect();
       chrome.storage.local.set({
-        [STORAGE_KEY_POSITION]: { left: rect.left, top: rect.top },
+        [storageKeyPosition()]: { left: rect.left, top: rect.top },
       });
     }
 
@@ -294,8 +258,8 @@
   }
 
   function restorePosition(modalEl) {
-    chrome.storage.local.get(STORAGE_KEY_POSITION, (result) => {
-      const pos = result[STORAGE_KEY_POSITION];
+    chrome.storage.local.get(storageKeyPosition(), (result) => {
+      const pos = result[storageKeyPosition()];
       if (pos?.left != null && pos?.top != null) {
         modalEl.style.right = 'auto';
         modalEl.style.left = `${pos.left}px`;
@@ -307,7 +271,7 @@
   function startPriceObserver() {
     if (observer) observer.disconnect();
 
-    const target = document.querySelector('.display-number') || document.body;
+    const target = broker.getObserverTarget();
 
     observer = new MutationObserver(() => {
       clearTimeout(debounceTimer);
@@ -339,7 +303,8 @@
   }
 
   async function init() {
-    if (!isReitPage()) return;
+    broker = window.RFV_getBroker();
+    if (!broker) return;
 
     renderLoading('Obteniendo fair value...');
 
