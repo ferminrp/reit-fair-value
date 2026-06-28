@@ -10,7 +10,19 @@ ALyCs soportadas:
 - [PPI](https://trading.portfoliopersonal.com/Cotizaciones/Item/925077)
 - [Cocos Capital](https://app.cocos.capital/market/ACCIONES) — abrí REIT desde el listado de mercado (panel lateral)
 
-## Instalación (modo desarrollador)
+## Instalación
+
+### Chrome Web Store
+
+Podés instalar la extensión directamente desde la [Chrome Web Store](https://chromewebstore.google.com/detail/reit-fair-value/fajnblaamegnikpejcmkdeaihijiaehe?authuser=1&hl=en):
+
+1. Abrí el enlace de arriba en Chrome.
+2. Clic en **Agregar a Chrome**.
+3. Confirmá la instalación.
+
+### Modo desarrollador
+
+Para probar cambios locales sin publicar en la store:
 
 1. Abrí `chrome://extensions` en Chrome.
 2. Activá **Modo de desarrollador** (esquina superior derecha).
